@@ -1,0 +1,592 @@
+--// JEYKO ANIMATION
+--// ELDER / ZOMBIE / MAGE
+--// RUN + IDLE + JUMP
+--// ANIMATIONS ON/OFF
+--// MENÚ ARRASTRABLE DESDE CUALQUIER PARTE VACÍA
+--// CTRL = OCULTAR / MOSTRAR MENÚ
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--==================================================
+-- ANIMACIONES
+--==================================================
+
+local PACKAGES = {
+	ELDER = {
+		Run = "rbxassetid://845386501",
+		Idle = "rbxassetid://845397899",
+		Jump = "rbxassetid://845398858",
+	},
+
+	ZOMBIE = {
+		Run = "rbxassetid://616163682",
+		Idle = "rbxassetid://616158929",
+		Jump = "rbxassetid://616161997",
+	},
+
+	MAGE = {
+		Run = "rbxassetid://707848224",
+		Idle = "rbxassetid://707742142",
+		Jump = "rbxassetid://707865869",
+	},
+}
+
+local SelectedPackage = "ELDER"
+local AnimationsEnabled = true
+local OriginalAnimations = {}
+
+--==================================================
+-- GUI
+--==================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "JeykoAnimation"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999998
+ScreenGui.Parent = PlayerGui
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 390, 0, 475)
+Main.Position = UDim2.new(0.5, -195, 0.5, -237)
+
+--==================================================
+-- FONDO PIOLA
+--==================================================
+
+Main.BackgroundColor3 = Color3.fromRGB(55, 30, 95)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = Main
+
+-- Degradado morado / azul
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(105, 45, 170)),
+	ColorSequenceKeypoint.new(0.45, Color3.fromRGB(65, 35, 115)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 60, 125))
+})
+MainGradient.Rotation = 135
+MainGradient.Parent = Main
+
+-- Borde brillante
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(175, 105, 255)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.15
+MainStroke.Parent = Main
+
+--==================================================
+-- TITULO
+--==================================================
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 55)
+Title.BackgroundTransparency = 1
+Title.Text = "JEYKO ANIMATION"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 25
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Main
+
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Position = UDim2.new(0, 0, 0, 43)
+Subtitle.Size = UDim2.new(1, 0, 0, 25)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "PAQUETES DE ANIMACIÓN"
+Subtitle.TextColor3 = Color3.fromRGB(215, 195, 240)
+Subtitle.TextSize = 12
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.Parent = Main
+
+--==================================================
+-- TABS
+--==================================================
+
+local Tabs = Instance.new("Frame")
+Tabs.Position = UDim2.new(0, 15, 0, 80)
+Tabs.Size = UDim2.new(1, -30, 0, 48)
+Tabs.BackgroundTransparency = 1
+Tabs.Parent = Main
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabLayout.Padding = UDim.new(0, 8)
+TabLayout.Parent = Tabs
+
+--==================================================
+-- ESTADO
+--==================================================
+
+local Status = Instance.new("TextLabel")
+Status.Position = UDim2.new(0, 15, 0, 140)
+Status.Size = UDim2.new(1, -30, 0, 45)
+Status.BackgroundColor3 = Color3.fromRGB(65, 35, 95)
+Status.Text = "PAQUETE: ELDER"
+Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+Status.TextSize = 17
+Status.Font = Enum.Font.GothamBold
+Status.Parent = Main
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 10)
+StatusCorner.Parent = Status
+
+local StatusStroke = Instance.new("UIStroke")
+StatusStroke.Color = Color3.fromRGB(150, 90, 220)
+StatusStroke.Transparency = 0.35
+StatusStroke.Parent = Status
+
+--==================================================
+-- ESTADOS
+--==================================================
+
+local StateTitle = Instance.new("TextLabel")
+StateTitle.Position = UDim2.new(0, 15, 0, 200)
+StateTitle.Size = UDim2.new(1, -30, 0, 30)
+StateTitle.BackgroundTransparency = 1
+StateTitle.Text = "PAQUETE ACTIVO"
+StateTitle.TextColor3 = Color3.fromRGB(220, 205, 235)
+StateTitle.TextSize = 13
+StateTitle.Font = Enum.Font.GothamBold
+StateTitle.Parent = Main
+
+local States = Instance.new("Frame")
+States.Position = UDim2.new(0, 15, 0, 235)
+States.Size = UDim2.new(1, -30, 0, 55)
+States.BackgroundTransparency = 1
+States.Parent = Main
+
+local StateLayout = Instance.new("UIListLayout")
+StateLayout.FillDirection = Enum.FillDirection.Horizontal
+StateLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+StateLayout.Padding = UDim.new(0, 8)
+StateLayout.Parent = States
+
+local function createStateButton(text)
+	local Button = Instance.new("TextButton")
+	Button.Size = UDim2.new(0, 108, 0, 48)
+	Button.BackgroundColor3 = Color3.fromRGB(35, 120, 65)
+	Button.Text = "✓ " .. text
+	Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Button.TextSize = 14
+	Button.Font = Enum.Font.GothamBold
+	Button.AutoButtonColor = false
+	Button.Parent = States
+
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0, 9)
+	Corner.Parent = Button
+
+	return Button
+end
+
+local RunState = createStateButton("RUN")
+local IdleState = createStateButton("IDLE")
+local JumpState = createStateButton("JUMP")
+
+--==================================================
+-- ANIMATIONS ON/OFF
+--==================================================
+
+local AnimationToggle = Instance.new("TextButton")
+AnimationToggle.Position = UDim2.new(0, 15, 0, 300)
+AnimationToggle.Size = UDim2.new(1, -30, 0, 48)
+AnimationToggle.BackgroundColor3 = Color3.fromRGB(35, 120, 65)
+AnimationToggle.Text = "ANIMATIONS: ON"
+AnimationToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+AnimationToggle.TextSize = 15
+AnimationToggle.Font = Enum.Font.GothamBold
+AnimationToggle.AutoButtonColor = false
+AnimationToggle.Parent = Main
+
+local AnimationToggleCorner = Instance.new("UICorner")
+AnimationToggleCorner.CornerRadius = UDim.new(0, 10)
+AnimationToggleCorner.Parent = AnimationToggle
+
+--==================================================
+-- INFORMACIÓN
+--==================================================
+
+local Info = Instance.new("TextLabel")
+Info.Position = UDim2.new(0, 20, 0, 360)
+Info.Size = UDim2.new(1, -40, 0, 75)
+Info.BackgroundTransparency = 1
+Info.TextWrapped = true
+Info.Text = "El paquete controla los 3 estados:\nRUN • IDLE • JUMP\nAl morir se vuelve a aplicar automáticamente."
+Info.TextColor3 = Color3.fromRGB(205, 190, 220)
+Info.TextSize = 13
+Info.Font = Enum.Font.Gotham
+Info.Parent = Main
+
+--==================================================
+-- FUNCIONES DE ANIMACIÓN
+--==================================================
+
+local function setAnimationId(animationObject, id)
+	if animationObject and animationObject:IsA("Animation") then
+		animationObject.AnimationId = id
+	end
+end
+
+local function getAnimationId(animationObject)
+	if animationObject and animationObject:IsA("Animation") then
+		return animationObject.AnimationId
+	end
+
+	return nil
+end
+
+local function saveOriginalAnimations(character)
+	if not character then
+		return
+	end
+
+	local Animate = character:FindFirstChild("Animate")
+
+	if not Animate then
+		Animate = character:WaitForChild("Animate", 5)
+	end
+
+	if not Animate then
+		return
+	end
+
+	OriginalAnimations[character] = {}
+
+	local saved = OriginalAnimations[character]
+
+	local Idle = Animate:FindFirstChild("idle")
+
+	if Idle then
+		saved.Idle1 = getAnimationId(Idle:FindFirstChild("Animation1"))
+		saved.Idle2 = getAnimationId(Idle:FindFirstChild("Animation2"))
+	end
+
+	local Run = Animate:FindFirstChild("run")
+
+	if Run then
+		saved.Run = getAnimationId(Run:FindFirstChild("RunAnim"))
+	end
+
+	local Walk = Animate:FindFirstChild("walk")
+
+	if Walk then
+		saved.Walk = getAnimationId(Walk:FindFirstChild("WalkAnim"))
+	end
+
+	local Jump = Animate:FindFirstChild("jump")
+
+	if Jump then
+		saved.Jump = getAnimationId(Jump:FindFirstChild("JumpAnim"))
+	end
+end
+
+local function restartAnimate(Animate)
+	if not Animate then
+		return
+	end
+
+	local oldEnabled = Animate.Enabled
+
+	Animate.Enabled = false
+	RunService.Heartbeat:Wait()
+	Animate.Enabled = oldEnabled
+end
+
+local function restoreOriginalAnimations(character)
+	if not character then
+		return
+	end
+
+	local saved = OriginalAnimations[character]
+
+	if not saved then
+		return
+	end
+
+	local Animate = character:FindFirstChild("Animate")
+
+	if not Animate then
+		return
+	end
+
+	local Idle = Animate:FindFirstChild("idle")
+
+	if Idle then
+		setAnimationId(Idle:FindFirstChild("Animation1"), saved.Idle1)
+		setAnimationId(Idle:FindFirstChild("Animation2"), saved.Idle2)
+	end
+
+	local Run = Animate:FindFirstChild("run")
+
+	if Run then
+		setAnimationId(Run:FindFirstChild("RunAnim"), saved.Run)
+	end
+
+	local Walk = Animate:FindFirstChild("walk")
+
+	if Walk then
+		setAnimationId(Walk:FindFirstChild("WalkAnim"), saved.Walk)
+	end
+
+	local Jump = Animate:FindFirstChild("jump")
+
+	if Jump then
+		setAnimationId(Jump:FindFirstChild("JumpAnim"), saved.Jump)
+	end
+
+	restartAnimate(Animate)
+end
+
+local function applyPackage(character)
+	if not character or not AnimationsEnabled then
+		return
+	end
+
+	local package = PACKAGES[SelectedPackage]
+
+	if not package then
+		return
+	end
+
+	local Animate = character:FindFirstChild("Animate")
+
+	if not Animate then
+		Animate = character:WaitForChild("Animate", 5)
+	end
+
+	if not Animate then
+		return
+	end
+
+	if not OriginalAnimations[character] then
+		saveOriginalAnimations(character)
+	end
+
+	local Idle = Animate:FindFirstChild("idle")
+
+	if Idle then
+		setAnimationId(Idle:FindFirstChild("Animation1"), package.Idle)
+		setAnimationId(Idle:FindFirstChild("Animation2"), package.Idle)
+	end
+
+	local Run = Animate:FindFirstChild("run")
+
+	if Run then
+		setAnimationId(Run:FindFirstChild("RunAnim"), package.Run)
+	end
+
+	local Walk = Animate:FindFirstChild("walk")
+
+	if Walk then
+		setAnimationId(Walk:FindFirstChild("WalkAnim"), package.Run)
+	end
+
+	local Jump = Animate:FindFirstChild("jump")
+
+	if Jump then
+		setAnimationId(Jump:FindFirstChild("JumpAnim"), package.Jump)
+	end
+
+	restartAnimate(Animate)
+
+	Status.Text = "PAQUETE: " .. SelectedPackage
+end
+
+--==================================================
+-- ON / OFF
+--==================================================
+
+local function updateAnimationToggle()
+	if AnimationsEnabled then
+		AnimationToggle.Text = "ANIMATIONS: ON"
+		AnimationToggle.BackgroundColor3 = Color3.fromRGB(35, 120, 65)
+
+		RunState.Text = "✓ RUN"
+		IdleState.Text = "✓ IDLE"
+		JumpState.Text = "✓ JUMP"
+	else
+		AnimationToggle.Text = "ANIMATIONS: OFF"
+		AnimationToggle.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+
+		RunState.Text = "✕ RUN"
+		IdleState.Text = "✕ IDLE"
+		JumpState.Text = "✕ JUMP"
+	end
+end
+
+AnimationToggle.MouseButton1Click:Connect(function()
+	AnimationsEnabled = not AnimationsEnabled
+
+	updateAnimationToggle()
+
+	if Player.Character then
+		if AnimationsEnabled then
+			applyPackage(Player.Character)
+		else
+			restoreOriginalAnimations(Player.Character)
+		end
+	end
+end)
+
+--==================================================
+-- SELECCIONAR PAQUETE
+--==================================================
+
+local function selectPackage(packageName)
+	if not PACKAGES[packageName] then
+		return
+	end
+
+	SelectedPackage = packageName
+
+	Status.Text = "PAQUETE: " .. packageName
+
+	updateAnimationToggle()
+
+	if AnimationsEnabled and Player.Character then
+		task.spawn(function()
+			applyPackage(Player.Character)
+		end)
+	end
+end
+
+--==================================================
+-- TABS
+--==================================================
+
+local function createTab(name)
+	local Button = Instance.new("TextButton")
+
+	Button.Size = UDim2.new(0, 110, 0, 45)
+	Button.BackgroundColor3 = Color3.fromRGB(55, 30, 80)
+	Button.Text = name
+	Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Button.TextSize = 14
+	Button.Font = Enum.Font.GothamBold
+	Button.AutoButtonColor = false
+	Button.Parent = Tabs
+
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0, 9)
+	Corner.Parent = Button
+
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Color = Color3.fromRGB(135, 80, 200)
+	Stroke.Transparency = 0.4
+	Stroke.Parent = Button
+
+	Button.MouseButton1Click:Connect(function()
+		selectPackage(name)
+	end)
+
+	return Button
+end
+
+createTab("ELDER")
+createTab("ZOMBIE")
+createTab("MAGE")
+
+--==================================================
+-- REAPARECER
+--==================================================
+
+Player.CharacterAdded:Connect(function(character)
+	task.wait(0.5)
+
+	saveOriginalAnimations(character)
+
+	if AnimationsEnabled then
+		applyPackage(character)
+	end
+end)
+
+if Player.Character then
+	task.spawn(function()
+		task.wait(0.5)
+
+		saveOriginalAnimations(Player.Character)
+
+		if AnimationsEnabled then
+			applyPackage(Player.Character)
+		end
+	end)
+end
+
+--==================================================
+-- CTRL = OCULTAR / MOSTRAR MENÚ
+--==================================================
+
+local MenuVisible = true
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.LeftControl
+		or input.KeyCode == Enum.KeyCode.RightControl then
+
+		MenuVisible = not MenuVisible
+		Main.Visible = MenuVisible
+	end
+end)
+
+--==================================================
+-- ARRASTRAR TODO EL MENÚ
+--==================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+Main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPosition = Main.Position
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local delta = input.Position - dragStart
+
+		Main.Position = UDim2.new(
+			startPosition.X.Scale,
+			startPosition.X.Offset + delta.X,
+			startPosition.Y.Scale,
+			startPosition.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = false
+	end
+end)
+
+print("JEYKO MENU cargado correctamente.")
